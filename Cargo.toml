@@ -1,0 +1,17 @@
+[package]
+name = "bililive-danmaku-rec"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+anyhow = "1.0.66"
+brotli = "3.3.4"
+byteorder = "1.4.3"
+env_logger = "0.9.3"
+futures-util = "0.3.25"
+log = "0.4.17"
+serde = { version = "1.0.147", features = ["derive"] }
+serde_json = "1.0.87"
+tokio = { version = "1.21.2", features = ["full"] }
+tokio-tungstenite = { version = "0.17.2", features = ["native-tls"] }
+toml = "0.5.9"
