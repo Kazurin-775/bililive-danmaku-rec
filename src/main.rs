@@ -226,6 +226,20 @@ fn on_packet(data: &[u8], config: &config::Config) -> anyhow::Result<()> {
                             log::info!("Widget banner: {} (#{})", widget["title"], id);
                         }
                     }
+                    "ONLINE_RANK_V2" => {
+                        if !config.notices {
+                            continue;
+                        }
+
+                        let rank_type = msg.data.as_ref().unwrap()["rank_type"].as_str().unwrap();
+                        let ranking: Vec<&str> = msg.data.as_ref().unwrap()["list"]
+                            .as_array()
+                            .unwrap()
+                            .iter()
+                            .map(|person| person.as_object().unwrap()["uname"].as_str().unwrap())
+                            .collect();
+                        log::info!("[N] Online ranking ({}): {}", rank_type, ranking.join(", "));
+                    }
                     "STOP_LIVE_ROOM_LIST" => (),
                     other => {
                         log::warn!("Unknown message type {}", other);
