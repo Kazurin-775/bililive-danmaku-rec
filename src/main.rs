@@ -138,14 +138,14 @@ fn on_packet(data: &[u8], config: &config::Config) -> anyhow::Result<()> {
                             continue;
                         }
                         let count = msg.data.unwrap()["count"].as_u64().unwrap();
-                        log::info!("[N] {} persons online", count);
+                        log::info!("[n] {} persons online", count);
                     }
                     "WATCHED_CHANGE" => {
                         if !config.notices {
                             continue;
                         }
                         let count = msg.data.as_ref().unwrap()["text_large"].as_str().unwrap();
-                        log::info!("[N] Number of watchers: {}", count);
+                        log::info!("[n] Number of watchers: {}", count);
                     }
                     "INTERACT_WORD" => {
                         // log::debug!("{:?}", msg.data);
@@ -156,7 +156,7 @@ fn on_packet(data: &[u8], config: &config::Config) -> anyhow::Result<()> {
                         let medal_level = medal["medal_level"].as_u64().unwrap();
 
                         log::info!(
-                            "{} [{}:{}] entered the live room (message type {})",
+                            "[w] {} [{}:{}] entered the live room (message type {})",
                             nickname,
                             medal_name,
                             medal_level,
@@ -166,17 +166,17 @@ fn on_packet(data: &[u8], config: &config::Config) -> anyhow::Result<()> {
                     "ENTRY_EFFECT" => {
                         let msg_data = msg.data.as_ref().unwrap();
                         log::info!(
-                            "Welcome captain (type {}): {}",
+                            "[w] Welcome captain (type {}): {}",
                             msg_data["privilege_type"].as_u64().unwrap(),
                             msg_data["copy_writing_v2"].as_str().unwrap(),
                         );
                     }
                     "NOTICE_MSG" => {
-                        log::info!("Notice message: {}", msg.msg_self.unwrap());
+                        log::info!("[i] Notice: {}", msg.msg_self.unwrap());
                     }
                     "USER_TOAST_MSG" => {
                         log::info!(
-                            "Toast message: {}",
+                            "[i] Toast message: {}",
                             msg.data.as_ref().unwrap()["toast_msg"].as_str().unwrap(),
                         );
                     }
@@ -190,7 +190,7 @@ fn on_packet(data: &[u8], config: &config::Config) -> anyhow::Result<()> {
                         let desc = msg_data["rank_desc"].as_str().unwrap();
                         let countdown = msg_data["countdown"].as_u64().unwrap();
                         log::info!(
-                            "[N] We are at top #{} in {} ({})! Countdown {}",
+                            "[n] We are at top #{} in {} ({})! Countdown {}",
                             rank,
                             area,
                             desc,
@@ -201,14 +201,14 @@ fn on_packet(data: &[u8], config: &config::Config) -> anyhow::Result<()> {
                         if !config.notices {
                             continue;
                         }
-                        log::info!("[N] Received HOT_RANK_CHANGED v1");
+                        log::info!("[n] Received HOT_RANK_CHANGED v1");
                     }
                     "SEND_GIFT" => {
                         let msg_data = msg.data.as_ref().unwrap();
                         let medal = msg_data["medal_info"].as_object().unwrap();
 
                         log::info!(
-                            "Gift received: {} [{}:{}] {} {} * {}",
+                            "[g] Gift received: {} [{}:{}] {} {} * {}",
                             msg_data["uname"].as_str().unwrap(),
                             medal["medal_name"].as_str().unwrap(),
                             medal["medal_level"].as_u64().unwrap(),
@@ -223,7 +223,7 @@ fn on_packet(data: &[u8], config: &config::Config) -> anyhow::Result<()> {
                             .unwrap();
                         for (id, widget) in widgets {
                             let widget = widget.as_object().unwrap();
-                            log::info!("Widget banner: {} (#{})", widget["title"], id);
+                            log::info!("[i] Widget banner: {} (#{})", widget["title"], id);
                         }
                     }
                     "ONLINE_RANK_V2" => {
@@ -238,7 +238,7 @@ fn on_packet(data: &[u8], config: &config::Config) -> anyhow::Result<()> {
                             .iter()
                             .map(|person| person.as_object().unwrap()["uname"].as_str().unwrap())
                             .collect();
-                        log::info!("[N] Online ranking ({}): {}", rank_type, ranking.join(", "));
+                        log::info!("[n] Online ranking ({}): {}", rank_type, ranking.join(", "));
                     }
                     "STOP_LIVE_ROOM_LIST" => (),
                     other => {
