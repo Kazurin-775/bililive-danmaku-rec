@@ -155,13 +155,32 @@ fn on_packet(data: &[u8], config: &config::Config) -> anyhow::Result<()> {
                         let medal_name = medal["medal_name"].as_str().unwrap();
                         let medal_level = medal["medal_level"].as_u64().unwrap();
 
-                        log::info!(
-                            "[w] {} [{}:{}] entered the live room (message type {})",
-                            nickname,
-                            medal_name,
-                            medal_level,
-                            msg_data["msg_type"].as_u64().unwrap(),
-                        );
+                        // `format_args!` simply cannot be used here (yet). Sad.
+                        // https://github.com/rust-lang/rust/issues/92698
+                        let user_repr = format!("{} [{}:{}]", nickname, medal_name, medal_level);
+
+                        match msg_data["msg_type"].as_u64().unwrap() {
+                            1 => log::info!("[w] {} entered the live room", user_repr),
+                            2 => log::info!("[w] {} followed the host", user_repr),
+                            3 => log::info!("[w] {} shared the live room", user_repr),
+                            4 => {
+                                log::info!(
+                                    "[w] {} added the host to special follow list",
+                                    user_repr,
+                                );
+                            }
+                            5 => {
+                                log::info!(
+                                    "[w] {} became mutual followers with the host",
+                                    user_repr,
+                                );
+                            }
+                            other => log::info!(
+                                "[w] {} triggered user interaction, type {}",
+                                user_repr,
+                                other,
+                            ),
+                        }
                     }
                     "ENTRY_EFFECT" => {
                         let msg_data = msg.data.as_ref().unwrap();
