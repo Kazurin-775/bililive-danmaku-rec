@@ -241,8 +241,12 @@ fn on_packet(data: &[u8], config: &config::Config) -> anyhow::Result<()> {
                             .as_object()
                             .unwrap();
                         for (id, widget) in widgets {
-                            let widget = widget.as_object().unwrap();
-                            log::info!("[i] Widget banner: {} (#{})", widget["title"], id);
+                            if widget.is_null() {
+                                log::info!("[i] Empty widget: #{}", id);
+                            } else {
+                                let widget = widget.as_object().unwrap();
+                                log::info!("[i] Widget banner: {} (#{})", widget["title"], id);
+                            }
                         }
                     }
                     "ONLINE_RANK_V2" => {
