@@ -96,6 +96,73 @@ fn on_packet(data: &[u8], config: &config::Config) -> anyhow::Result<()> {
             for msg in msgs {
                 log::debug!("Received message with type {}", msg.cmd);
                 match msg.cmd.as_str() {
+                    // ---------- Ignored messages ----------
+                    "STOP_LIVE_ROOM_LIST" => (),
+
+                    // ---------- Notice messages ----------
+                    "ONLINE_RANK_COUNT" => {
+                        if !config.notices {
+                            continue;
+                        }
+                        let count = msg.data.unwrap()["count"].as_u64().unwrap();
+                        log::info!("[n] {} persons online", count);
+                    }
+                    "WATCHED_CHANGE" => {
+                        if !config.notices {
+                            continue;
+                        }
+                        let count = msg.data.as_ref().unwrap()["text_large"].as_str().unwrap();
+                        log::info!("[n] Number of watchers: {}", count);
+                    }
+                    "LIKE_INFO_V3_UPDATE" => {
+                        if !config.notices {
+                            continue;
+                        }
+
+                        log::info!(
+                            "[n] {} users \"like\"d the live room",
+                            msg.data.unwrap()["count"].as_u64().unwrap(),
+                        );
+                    }
+                    "ONLINE_RANK_V2" => {
+                        if !config.notices {
+                            continue;
+                        }
+
+                        let rank_type = msg.data.as_ref().unwrap()["rank_type"].as_str().unwrap();
+                        let ranking: Vec<&str> = msg.data.as_ref().unwrap()["list"]
+                            .as_array()
+                            .unwrap()
+                            .iter()
+                            .map(|person| person.as_object().unwrap()["uname"].as_str().unwrap())
+                            .collect();
+                        log::info!("[n] Online ranking ({}): {}", rank_type, ranking.join(", "));
+                    }
+                    "HOT_RANK_CHANGED_V2" => {
+                        if !config.notices {
+                            continue;
+                        }
+                        let msg_data = msg.data.as_ref().unwrap();
+                        let rank = msg_data["rank"].as_u64().unwrap();
+                        let area = msg_data["area_name"].as_str().unwrap();
+                        let desc = msg_data["rank_desc"].as_str().unwrap();
+                        let countdown = msg_data["countdown"].as_u64().unwrap();
+                        log::info!(
+                            "[n] We are at top #{} in {} ({})! Countdown {}",
+                            rank,
+                            area,
+                            desc,
+                            countdown,
+                        );
+                    }
+                    "HOT_RANK_CHANGED" => {
+                        if !config.notices {
+                            continue;
+                        }
+                        log::info!("[n] Received HOT_RANK_CHANGED v1");
+                    }
+
+                    // ---------- Chat messages ----------
                     "DANMU_MSG" => {
                         // log::debug!("{:?}", msg.info.as_ref().unwrap());
                         let msg_info = msg.info.as_ref().unwrap();
@@ -133,20 +200,8 @@ fn on_packet(data: &[u8], config: &config::Config) -> anyhow::Result<()> {
 
                         log::info!("{}", log_msg);
                     }
-                    "ONLINE_RANK_COUNT" => {
-                        if !config.notices {
-                            continue;
-                        }
-                        let count = msg.data.unwrap()["count"].as_u64().unwrap();
-                        log::info!("[n] {} persons online", count);
-                    }
-                    "WATCHED_CHANGE" => {
-                        if !config.notices {
-                            continue;
-                        }
-                        let count = msg.data.as_ref().unwrap()["text_large"].as_str().unwrap();
-                        log::info!("[n] Number of watchers: {}", count);
-                    }
+
+                    // ---------- Welcome messages ----------
                     "INTERACT_WORD" => {
                         // log::debug!("{:?}", msg.data);
                         let msg_data = &msg.data.as_ref().unwrap();
@@ -190,6 +245,20 @@ fn on_packet(data: &[u8], config: &config::Config) -> anyhow::Result<()> {
                             msg_data["copy_writing_v2"].as_str().unwrap(),
                         );
                     }
+                    "LIKE_INFO_V3_CLICK" => {
+                        let msg_data = msg.data.as_ref().unwrap();
+                        let medal = msg_data["fans_medal"].as_object().unwrap();
+
+                        log::info!(
+                            "[w] New like: {} [{}:{}] {}",
+                            msg_data["uname"].as_str().unwrap(),
+                            medal["medal_name"].as_str().unwrap(),
+                            medal["medal_level"].as_u64().unwrap(),
+                            msg_data["like_text"].as_str().unwrap(),
+                        );
+                    }
+
+                    // ---------- Informative messages ----------
                     "NOTICE_MSG" => {
                         log::info!("[i] Notice: {}", msg.msg_self.unwrap());
                     }
@@ -199,29 +268,21 @@ fn on_packet(data: &[u8], config: &config::Config) -> anyhow::Result<()> {
                             msg.data.as_ref().unwrap()["toast_msg"].as_str().unwrap(),
                         );
                     }
-                    "HOT_RANK_CHANGED_V2" => {
-                        if !config.notices {
-                            continue;
+                    "WIDGET_BANNER" => {
+                        let widgets = msg.data.as_ref().unwrap()["widget_list"]
+                            .as_object()
+                            .unwrap();
+                        for (id, widget) in widgets {
+                            if widget.is_null() {
+                                log::info!("[i] Empty widget: #{}", id);
+                            } else {
+                                let widget = widget.as_object().unwrap();
+                                log::info!("[i] Widget banner: {} (#{})", widget["title"], id);
+                            }
                         }
-                        let msg_data = msg.data.as_ref().unwrap();
-                        let rank = msg_data["rank"].as_u64().unwrap();
-                        let area = msg_data["area_name"].as_str().unwrap();
-                        let desc = msg_data["rank_desc"].as_str().unwrap();
-                        let countdown = msg_data["countdown"].as_u64().unwrap();
-                        log::info!(
-                            "[n] We are at top #{} in {} ({})! Countdown {}",
-                            rank,
-                            area,
-                            desc,
-                            countdown,
-                        );
                     }
-                    "HOT_RANK_CHANGED" => {
-                        if !config.notices {
-                            continue;
-                        }
-                        log::info!("[n] Received HOT_RANK_CHANGED v1");
-                    }
+
+                    // ---------- Gift messages ----------
                     "SEND_GIFT" => {
                         let msg_data = msg.data.as_ref().unwrap();
                         let medal = msg_data["medal_info"].as_object().unwrap();
@@ -312,56 +373,8 @@ fn on_packet(data: &[u8], config: &config::Config) -> anyhow::Result<()> {
                             msg_data["price"].as_u64().unwrap(),
                         );
                     }
-                    "LIKE_INFO_V3_UPDATE" => {
-                        if !config.notices {
-                            continue;
-                        }
 
-                        log::info!(
-                            "[n] {} users \"like\"d the live room",
-                            msg.data.unwrap()["count"].as_u64().unwrap(),
-                        );
-                    }
-                    "LIKE_INFO_V3_CLICK" => {
-                        let msg_data = msg.data.as_ref().unwrap();
-                        let medal = msg_data["fans_medal"].as_object().unwrap();
-
-                        log::info!(
-                            "[w] New like: {} [{}:{}] {}",
-                            msg_data["uname"].as_str().unwrap(),
-                            medal["medal_name"].as_str().unwrap(),
-                            medal["medal_level"].as_u64().unwrap(),
-                            msg_data["like_text"].as_str().unwrap(),
-                        );
-                    }
-                    "WIDGET_BANNER" => {
-                        let widgets = msg.data.as_ref().unwrap()["widget_list"]
-                            .as_object()
-                            .unwrap();
-                        for (id, widget) in widgets {
-                            if widget.is_null() {
-                                log::info!("[i] Empty widget: #{}", id);
-                            } else {
-                                let widget = widget.as_object().unwrap();
-                                log::info!("[i] Widget banner: {} (#{})", widget["title"], id);
-                            }
-                        }
-                    }
-                    "ONLINE_RANK_V2" => {
-                        if !config.notices {
-                            continue;
-                        }
-
-                        let rank_type = msg.data.as_ref().unwrap()["rank_type"].as_str().unwrap();
-                        let ranking: Vec<&str> = msg.data.as_ref().unwrap()["list"]
-                            .as_array()
-                            .unwrap()
-                            .iter()
-                            .map(|person| person.as_object().unwrap()["uname"].as_str().unwrap())
-                            .collect();
-                        log::info!("[n] Online ranking ({}): {}", rank_type, ranking.join(", "));
-                    }
-                    "STOP_LIVE_ROOM_LIST" => (),
+                    // ---------- Unsupported messages ----------
                     other => {
                         log::warn!(
                             "Unknown message type {} (with payload {:?})",
