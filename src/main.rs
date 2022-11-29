@@ -236,6 +236,104 @@ fn on_packet(data: &[u8], config: &config::Config) -> anyhow::Result<()> {
                             msg_data["num"].as_u64().unwrap(),
                         );
                     }
+                    "COMBO_SEND" => {
+                        let msg_data = msg.data.as_ref().unwrap();
+                        let medal = msg_data["medal_info"].as_object().unwrap();
+
+                        log::info!(
+                            "[g] Received a bunch of gifts: {} [{}:{}] {} {} * {}",
+                            msg_data["uname"].as_str().unwrap(),
+                            medal["medal_name"].as_str().unwrap(),
+                            medal["medal_level"].as_u64().unwrap(),
+                            msg_data["action"].as_str().unwrap(),
+                            msg_data["gift_name"].as_str().unwrap(),
+                            msg_data["combo_num"].as_u64().unwrap(),
+                        );
+                    }
+                    "SUPER_CHAT_MESSAGE" => {
+                        let msg_data = msg.data.as_ref().unwrap();
+                        let medal = msg_data["medal_info"].as_object().unwrap();
+
+                        log::info!(
+                            "[SC] {} [{}:{}] sends a super chat (#{}, price {}, {} secs): {}",
+                            msg_data["user_info"].as_object().unwrap()["uname"]
+                                .as_str()
+                                .unwrap(),
+                            medal["medal_name"].as_str().unwrap(),
+                            medal["medal_level"].as_u64().unwrap(),
+                            msg_data["id"].as_u64().unwrap(),
+                            msg_data["price"].as_u64().unwrap(),
+                            msg_data["time"].as_u64().unwrap(),
+                            msg_data["message"].as_str().unwrap(),
+                        );
+                    }
+                    "SUPER_CHAT_MESSAGE_JPN" => {
+                        let msg_data = msg.data.as_ref().unwrap();
+                        let medal = msg_data["medal_info"].as_object().unwrap();
+
+                        log::info!(
+                            "[SC] {} [{}:{}]'s super chat (#{}) in Japanese: {}",
+                            msg_data["user_info"].as_object().unwrap()["uname"]
+                                .as_str()
+                                .unwrap(),
+                            medal["medal_name"].as_str().unwrap(),
+                            medal["medal_level"].as_u64().unwrap(),
+                            msg_data["id"].as_str().unwrap(),
+                            msg_data["message_jpn"].as_str().unwrap(),
+                        );
+                    }
+                    "SUPER_CHAT_MESSAGE_DELETE" => {
+                        use std::fmt::Write;
+
+                        let mut list = String::with_capacity(256);
+                        for (i, id) in msg.data.as_ref().unwrap()["ids"]
+                            .as_array()
+                            .unwrap()
+                            .iter()
+                            .enumerate()
+                        {
+                            let id = id.as_u64().unwrap();
+                            if i != 0 {
+                                list.push_str(", ");
+                            }
+                            write!(list, "{}", id).unwrap();
+                        }
+
+                        log::info!("[SC] Some super chats got deleted: {}. Sad :(", list);
+                    }
+                    "GUARD_BUY" => {
+                        let msg_data = msg.data.as_ref().unwrap();
+
+                        log::info!(
+                            "[g] {} has become a {} (* {}, price {})!",
+                            msg_data["username"].as_str().unwrap(),
+                            msg_data["gift_name"].as_str().unwrap(),
+                            msg_data["num"].as_u64().unwrap(),
+                            msg_data["price"].as_u64().unwrap(),
+                        );
+                    }
+                    "LIKE_INFO_V3_UPDATE" => {
+                        if !config.notices {
+                            continue;
+                        }
+
+                        log::info!(
+                            "[n] {} users \"like\"d the live room",
+                            msg.data.unwrap()["count"].as_u64().unwrap(),
+                        );
+                    }
+                    "LIKE_INFO_V3_CLICK" => {
+                        let msg_data = msg.data.as_ref().unwrap();
+                        let medal = msg_data["fans_medal"].as_object().unwrap();
+
+                        log::info!(
+                            "[w] New like: {} [{}:{}] {}",
+                            msg_data["uname"].as_str().unwrap(),
+                            medal["medal_name"].as_str().unwrap(),
+                            medal["medal_level"].as_u64().unwrap(),
+                            msg_data["like_text"].as_str().unwrap(),
+                        );
+                    }
                     "WIDGET_BANNER" => {
                         let widgets = msg.data.as_ref().unwrap()["widget_list"]
                             .as_object()
