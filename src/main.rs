@@ -363,7 +363,11 @@ fn on_packet(data: &[u8], config: &config::Config) -> anyhow::Result<()> {
                     }
                     "STOP_LIVE_ROOM_LIST" => (),
                     other => {
-                        log::warn!("Unknown message type {}", other);
+                        log::warn!(
+                            "Unknown message type {} (with payload {:?})",
+                            other,
+                            msg.data,
+                        );
                     }
                 }
             }
